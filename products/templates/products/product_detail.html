@@ -1,0 +1,74 @@
+{% extends 'products/base.html' %}
+
+{% block title %}{{ product.name }} - Details{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4 fw-bold mb-0">Product Details</h2>
+            <div class="d-flex gap-2">
+                <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline-primary btn-sm">Edit</a>
+                <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm">Back to Products</a>
+            </div>
+        </div>
+
+        <div class="card p-4">
+            <div class="text-center mb-3">
+                {% if product.get_image_url %}
+                    <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="img-fluid rounded border" style="max-height: 250px;">
+                {% else %}
+                    <div class="p-4 bg-light text-muted rounded border">
+                        <i class="bi bi-image fs-1 d-block mb-1"></i>
+                        <span>No image uploaded</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <th class="bg-light" style="width: 35%;">Product Name</th>
+                        <td class="fw-semibold">{{ product.name }}</td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light">SKU</th>
+                        <td>{{ product.sku }}</td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light">Category</th>
+                        <td>{{ product.category.name }}</td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light">Price</th>
+                        <td class="fw-bold text-primary">₹{{ product.price }}</td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light">Stock</th>
+                        <td>
+                            {{ product.stock }}
+                            {% if product.is_low_stock %}
+                                <span class="badge bg-warning text-dark ms-1">Low Stock</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light">Status</th>
+                        <td>
+                            {% if product.status == 'Active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light">Description</th>
+                        <td class="text-break">{{ product.description|default:"No description provided." }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

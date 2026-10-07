@@ -1,0 +1,344 @@
+{% extends 'products/base.html' %}
+
+{% block title %}Products - E-Commerce Product Management{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h2 class="h4 fw-bold mb-1">Product Management</h2>
+        <p class="text-muted small mb-0">View, search, filter and manage your store inventory</p>
+    <div class="d-flex gap-2">
+        <a href="{% url 'sync_dummyjson' %}" class="btn btn-outline-success" title="Sync live products from DummyJSON API">
+            <i class="bi bi-arrow-repeat me-1"></i> Sync DummyJSON
+        </a>
+        <a href="{% url 'product_add' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add Product
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filter Bar -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{% url 'product_list' %}" class="row g-2 align-items-center">
+            <!-- Search by Product Name -->
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Search by product name..." value="{{ search_query }}">
+                </div>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="col-md-3">
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="col-md-3">
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="Active" {% if selected_status == 'Active' %}selected{% endif %}>Active</option>
+                    <option value="Inactive" {% if selected_status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+
+            <!-- Submit & Reset Buttons -->
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                    Filter
+                </button>
+                {% if search_query or selected_category or selected_status %}
+                    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary" title="Clear Filters">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Product Table -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col" style="width: 70px;">Image</th>
+                    <th scope="col">Product</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Stock</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="text-end" style="width: 180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in page_obj %}
+                <tr>
+                    <!-- Product Image Thumbnail -->
+                    <td>
+                        {% if product.get_image_url %}
+                            <img src="{{ product.get_image_url }}" alt="{{ product.name }}" class="product-thumb">
+                        {% else %}
+                            <div class="product-thumb-placeholder">
+                                <i class="bi bi-image"></i>
+                            </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Product Name & SKU -->
+                    <td>
+                        <div class="fw-bold text-dark">{{ product.name }}</div>
+                        <small class="text-muted">SKU: {{ product.sku }}</small>
+                    </td>
+
+                    <!-- Category -->
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ product.category.name }}</span>
+                    </td>
+
+                    <!-- Price -->
+                    <td class="fw-semibold">
+                        ₹{{ product.price }}
+                    </td>
+
+                    <!-- Stock Quantity & Low Stock Indicator -->
+                    <td>
+                        <span>{{ product.stock }}</span>
+                        {% if product.is_low_stock %}
+                            <span class="badge bg-warning text-dark ms-1" title="Stock is 5 or below">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Low Stock
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Status Indicator -->
+                    <td>
+                        {% if product.status == 'Active' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-check-circle-fill me-1"></i> Active
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                <i class="bi bi-dash-circle me-1"></i> Inactive
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <!-- View Button (Opens Modal) -->
+                            <button type="button" 
+                                    class="btn btn-outline-secondary btn-view" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#viewProductModal"
+                                    data-name="{{ product.name }}"
+                                    data-sku="{{ product.sku }}"
+                                    data-category="{{ product.category.name }}"
+                                    data-price="₹{{ product.price }}"
+                                    data-stock="{{ product.stock }}"
+                                    data-status="{{ product.status }}"
+                                    data-description="{{ product.description|default:'No description provided.' }}"
+                                    data-image="{% if product.get_image_url %}{{ product.get_image_url }}{% endif %}"
+                                    title="View Details">
+                                View
+                            </button>
+                            <!-- Edit Button -->
+                            <a href="{% url 'product_edit' product.pk %}" class="btn btn-outline-primary" title="Edit Product">
+                                Edit
+                            </a>
+                            <!-- Delete Button (Confirmation Modal) -->
+                            <button type="button" 
+                                    class="btn btn-outline-danger btn-delete" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deleteProductModal"
+                                    data-id="{{ product.pk }}"
+                                    data-name="{{ product.name }}"
+                                    title="Delete Product">
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        No products found.
+                        {% if search_query or selected_category or selected_status %}
+                            <br><a href="{% url 'product_list' %}" class="btn btn-link btn-sm mt-2">Clear all filters</a>
+                        {% else %}
+                            <br><a href="{% url 'product_add' %}" class="btn btn-primary btn-sm mt-2">Add Your First Product</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Basic Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+        <div class="text-muted small">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} products
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">&laquo; First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">Previous</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">Last &raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Product View Modal -->
+<div class="modal fade" id="viewProductModal" tabindex="-1" aria-labelledby="viewProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="viewProductModalLabel">Product Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3" id="modalProductImageContainer">
+                    <img id="modalProductImage" src="" alt="Product Image" class="img-fluid rounded border" style="max-height: 220px;">
+                    <div id="modalProductImagePlaceholder" class="p-4 bg-light text-muted rounded border d-none">
+                        <i class="bi bi-image fs-1 d-block mb-1"></i>
+                        <span>No image uploaded</span>
+                    </div>
+                </div>
+                <table class="table table-sm table-bordered">
+                    <tbody>
+                        <tr>
+                            <th class="bg-light" style="width: 35%;">Product Name</th>
+                            <td id="modalProductName" class="fw-semibold"></td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">SKU</th>
+                            <td id="modalProductSku"></td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">Category</th>
+                            <td id="modalProductCategory"></td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">Price</th>
+                            <td id="modalProductPrice" class="fw-bold text-primary"></td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">Stock</th>
+                            <td id="modalProductStock"></td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">Status</th>
+                            <td id="modalProductStatus"></td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">Description</th>
+                            <td id="modalProductDescription" class="text-break"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-labelledby="deleteProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger fw-bold" id="deleteProductModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteProductName"></strong>?</p>
+                <p class="text-muted small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteProductForm" method="POST" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Yes, Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // View Modal Population
+    const viewButtons = document.querySelectorAll('.btn-view');
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('modalProductName').textContent = this.dataset.name;
+            document.getElementById('modalProductSku').textContent = this.dataset.sku;
+            document.getElementById('modalProductCategory').textContent = this.dataset.category;
+            document.getElementById('modalProductPrice').textContent = this.dataset.price;
+            document.getElementById('modalProductStock').textContent = this.dataset.stock;
+            document.getElementById('modalProductStatus').textContent = this.dataset.status;
+            document.getElementById('modalProductDescription').textContent = this.dataset.description;
+
+            const img = document.getElementById('modalProductImage');
+            const placeholder = document.getElementById('modalProductImagePlaceholder');
+            if (this.dataset.image) {
+                img.src = this.dataset.image;
+                img.classList.remove('d-none');
+                placeholder.classList.add('d-none');
+            } else {
+                img.classList.add('d-none');
+                placeholder.classList.remove('d-none');
+            }
+        });
+    });
+
+    // Delete Modal Population
+    const deleteButtons = document.querySelectorAll('.btn-delete');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const productId = this.dataset.id;
+            const productName = this.dataset.name;
+            document.getElementById('deleteProductName').textContent = productName;
+            document.getElementById('deleteProductForm').action = `/products/${productId}/delete/`;
+        });
+    });
+</script>
+{% endblock %}
