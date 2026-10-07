@@ -33,6 +33,7 @@ class Product(models.Model):
         validators=[MinValueValidator(0, message="Stock cannot be negative.")]
     )
     image = models.ImageField(upload_to='products/', blank=True, null=True)
+    image_url = models.URLField(max_length=500, blank=True, null=True)
     description = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='Active')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -47,3 +48,14 @@ class Product(models.Model):
     @property
     def is_low_stock(self):
         return self.stock <= 5
+
+    @property
+    def get_image_url(self):
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        if self.image_url:
+            return self.image_url
+        return None
