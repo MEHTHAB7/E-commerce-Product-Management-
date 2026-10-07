@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Media files uploaded by users
+media/products/
+
+# SQLite database (optional, can be ignored or tracked)
+# db.sqlite3
+
+# IDEs
+.vscode/
+.idea/
